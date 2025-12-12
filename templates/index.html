@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIBA - AI Business Analyst</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="40" height="40" rx="8" fill="#1a237e"/>
+                        <path d="M20 10L25 18H15L20 10Z" fill="white"/>
+                        <path d="M15 18H25L20 26L15 18Z" fill="white"/>
+                        <circle cx="20" cy="30" r="2" fill="white"/>
+                    </svg>
+                    <h1>AIBA</h1>
+                </div>
+                <p class="tagline">AI Business Analyst - Interactive BRD Generator</p>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Step 1: Project Setup -->
+            <div id="step-project-setup" class="step active">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>📋 Project Setup</h2>
+                        <p>Let's start by gathering some basic information about your project</p>
+                    </div>
+                    <div class="card-body">
+                        <form id="project-setup-form">
+                            <div class="form-group">
+                                <label for="client_name">Client Name *</label>
+                                <input type="text" id="client_name" name="client_name" placeholder="e.g., PWC" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="company_name">Company Name *</label>
+                                <input type="text" id="company_name" name="company_name" placeholder="e.g., Supervity" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="project_topic">Project Topic/Objective *</label>
+                                <textarea id="project_topic" name="project_topic" rows="3" placeholder="e.g., AI Solutions for System Automation" required></textarea>
+                            </div>
+                            <button type="submit" class="btn btn-primary">
+                                Start Conversation
+                                <span class="btn-icon">→</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 2: Conversation -->
+            <div id="step-conversation" class="step">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>💬 Requirements Gathering</h2>
+                        <div class="progress-bar-container">
+                            <div class="progress-bar" id="progress-bar">
+                                <div class="progress-fill" id="progress-fill"></div>
+                            </div>
+                            <span class="progress-text" id="progress-text">Question 0/10</span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="conversation-container">
+                            <div id="conversation-messages" class="messages"></div>
+                            <div id="current-question" class="current-question"></div>
+                            <div class="input-area">
+                                <textarea id="answer-input" placeholder="Type your answer here..." rows="3"></textarea>
+                                <div class="input-actions">
+                                    <button id="skip-btn" class="btn btn-secondary">Skip</button>
+                                    <button id="submit-answer-btn" class="btn btn-primary">Submit Answer</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Additional Information -->
+            <div id="step-additional-info" class="step">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>💭 Additional Information</h2>
+                        <p>Add any additional details or ask questions</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="conversation-container">
+                            <div id="additional-messages" class="messages"></div>
+                            <div class="input-area">
+                                <textarea id="additional-input" placeholder="Add more information or ask questions..." rows="3"></textarea>
+                                <div class="input-actions">
+                                    <button id="add-info-btn" class="btn btn-primary">Add Information</button>
+                                    <button id="proceed-to-brd-btn" class="btn btn-success">Generate BRD</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 4: BRD Generation -->
+            <div id="step-brd-generation" class="step">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>📊 Generating BRD</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="loading-container">
+                            <div class="spinner"></div>
+                            <p>Processing your requirements and generating a comprehensive Business Requirements Document...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: BRD Result -->
+            <div id="step-brd-result" class="step">
+                <div class="card">
+                    <div class="card-header">
+                        <h2>✅ BRD Generated Successfully!</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="brd-preview" class="brd-preview"></div>
+                        <div class="download-actions">
+                            <button id="download-md-btn" class="btn btn-primary">
+                                📑 Download PDF
+                            </button>
+                            <button id="download-pdf-btn" class="btn btn-primary" style="display: none;">
+                                📄 Download PDF (Alternative)
+                            </button>
+                            <button id="new-project-btn" class="btn btn-secondary">
+                                🆕 New Project
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Powered by AIBA (AI Business Analyst) | Built with Flask & Groq</p>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
+

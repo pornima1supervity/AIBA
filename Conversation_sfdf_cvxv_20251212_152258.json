@@ -1,0 +1,86 @@
+{
+  "project_context": "\nClient: sfdf\nCompany: cvxv\nProject Topic: czdvz\nDate: 2025-12-12 15:22:43\n",
+  "conversation_history": [
+    {
+      "role": "assistant",
+      "content": "What is the main problem or challenge that this AI automation solution aims to solve?"
+    },
+    {
+      "role": "user",
+      "content": "skip"
+    },
+    {
+      "role": "assistant",
+      "content": "What are the current processes or systems that need to be automated?"
+    },
+    {
+      "role": "user",
+      "content": "skip"
+    },
+    {
+      "role": "assistant",
+      "content": "Who are the primary users/stakeholders who will benefit from this solution?"
+    },
+    {
+      "role": "user",
+      "content": "skip"
+    },
+    {
+      "role": "assistant",
+      "content": "What are the key business objectives and expected outcomes?"
+    },
+    {
+      "role": "user",
+      "content": "skip"
+    },
+    {
+      "role": "assistant",
+      "content": "Are there any specific AI technologies or solutions you have in mind?"
+    },
+    {
+      "role": "user",
+      "content": "skip"
+    },
+    {
+      "role": "assistant",
+      "content": "What are the critical success factors for this project?"
+    },
+    {
+      "role": "user",
+      "content": "skip"
+    },
+    {
+      "role": "assistant",
+      "content": "Are there any compliance, security, or regulatory requirements?"
+    },
+    {
+      "role": "user",
+      "content": "skip"
+    },
+    {
+      "role": "assistant",
+      "content": "What is the expected timeline for this project?"
+    },
+    {
+      "role": "user",
+      "content": "skip"
+    },
+    {
+      "role": "assistant",
+      "content": "What are the main risks or concerns you foresee?"
+    },
+    {
+      "role": "user",
+      "content": "skip"
+    },
+    {
+      "role": "assistant",
+      "content": "Are there any existing systems that need to integrate with the new solution?"
+    },
+    {
+      "role": "user",
+      "content": "skip"
+    }
+  ],
+  "timestamp": "20251212_152258"
+}
