@@ -2,6 +2,8 @@
 
 A professional web-based interface for the AIBA (AI Business Analyst) BRD Generator.
 
+**🚀 Quick Start:** See [TESTING_GUIDE.md](TESTING_GUIDE.md) for manager/testing instructions.
+
 ## Features
 
 - 🎨 **Modern, Professional UI** - Clean and intuitive interface designed for stakeholder meetings
