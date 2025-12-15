@@ -6,8 +6,9 @@ let state = {
     companyName: '',
     projectTopic: '',
     conversationHistory: [],
-    questionIndex: 0,
-    totalQuestions: 10,
+    conversationPhase: 'discovery',
+    totalExchanges: 0,
+    customerResearch: '',
     brdData: null
 };
 
@@ -132,7 +133,13 @@ async function handleProjectSetup(e) {
             state.clientName = data.client_name;
             state.companyName = data.company_name;
             state.projectTopic = data.project_topic;
-            state.totalQuestions = data.total_questions;
+            state.customerResearch = data.customer_research || '';
+            state.conversationPhase = data.conversation_phase || 'discovery';
+            
+            // Show brief research acknowledgment if available
+            if (data.customer_research) {
+                // Don't add verbose message - just start asking questions naturally
+            }
             
             showStep('step-conversation');
             loadNextQuestion();
@@ -145,10 +152,10 @@ async function handleProjectSetup(e) {
     }
 }
 
-// Question Management
+// Question Management - Adaptive
 async function loadNextQuestion() {
-    // Check if we have completed all questions
-    if (state.questionIndex >= state.totalQuestions) {
+    // Check if we should continue or move to BRD generation
+    if (state.totalExchanges >= 15) {
         showStep('step-additional-info');
         displayAdditionalInfoWelcome();
         return;
@@ -161,7 +168,10 @@ async function loadNextQuestion() {
                 'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-                question_index: state.questionIndex
+                conversation_history: state.conversationHistory,
+                customer_research: state.customerResearch,
+                project_topic: state.projectTopic,
+                conversation_phase: state.conversationPhase
             })
         });
         
@@ -176,8 +186,9 @@ async function loadNextQuestion() {
         }
         
         if (data.question) {
-            displayQuestion(data.question, data.question_index);
-            updateProgress(data.question_index + 1, data.total_questions);
+            displayQuestion(data.question, data.conversation_phase, data.total_exchanges);
+            state.conversationPhase = data.conversation_phase || state.conversationPhase;
+            updateProgress(data.conversation_phase, data.total_exchanges);
         } else {
             // No more questions, move to additional info
             showStep('step-additional-info');
@@ -189,13 +200,11 @@ async function loadNextQuestion() {
     }
 }
 
-function displayQuestion(question, index) {
+function displayQuestion(question, phase, exchangeCount) {
     const questionDiv = document.getElementById('current-question');
     if (questionDiv) {
-        questionDiv.innerHTML = `
-            <h3>Question ${index + 1}/${state.totalQuestions}</h3>
-            <p>${question}</p>
-        `;
+        // Just show the question - clean and simple
+        questionDiv.innerHTML = `<p>${question}</p>`;
     }
     
     const answerInput = document.getElementById('answer-input');
@@ -203,6 +212,22 @@ function displayQuestion(question, index) {
         answerInput.value = '';
         answerInput.focus();
     }
+}
+
+function updateProgress(phase, exchangeCount) {
+    const percentage = Math.min((exchangeCount / 15) * 100, 100);
+    document.getElementById('progress-fill').style.width = `${percentage}%`;
+    
+    const phaseNames = {
+        'discovery': 'Discovery',
+        'consultative': 'Deep Dive',
+        'technical': 'Technical Requirements'
+    };
+    const phaseName = phaseNames[phase] || phase;
+    
+    const phaseIndicator = document.getElementById('phase-indicator');
+    
+    if (phaseIndicator) phaseIndicator.textContent = phaseName;
 }
 
 // Answer Submission
@@ -238,7 +263,8 @@ async function handleSubmitAnswer() {
                 question: question,
                 answer: answer,
                 conversation_history: state.conversationHistory,
-                question_index: state.questionIndex
+                customer_research: state.customerResearch,
+                conversation_phase: state.conversationPhase
             })
         });
         
@@ -253,23 +279,25 @@ async function handleSubmitAnswer() {
             addMessage('assistant', question);
             addMessage('user', answer);
             
-            if (data.ai_response) {
+            // Only add AI response if it's a real question (contains ?), skip acknowledgments
+            if (data.ai_response && data.ai_response.trim() && data.ai_response.includes('?')) {
                 addMessage('assistant', data.ai_response);
             }
             
             state.conversationHistory = data.conversation_history || state.conversationHistory;
-            state.questionIndex = data.next_question_index;
+            state.conversationPhase = data.conversation_phase || state.conversationPhase;
+            state.totalExchanges = data.total_exchanges || state.totalExchanges;
             
             // Move to next question or additional info
-            if (state.questionIndex >= state.totalQuestions) {
+            if (!data.should_continue || state.totalExchanges >= 15) {
                 setTimeout(() => {
                     showStep('step-additional-info');
                     displayAdditionalInfoWelcome();
-                }, 1000);
+                }, 800);
             } else {
                 setTimeout(() => {
                     loadNextQuestion();
-                }, 1000);
+                }, 800);
             }
         }
     } catch (error) {
@@ -293,9 +321,9 @@ async function handleSkipQuestion() {
         });
     }
     
-    state.questionIndex++;
+    state.totalExchanges++;
     
-    if (state.questionIndex >= state.totalQuestions) {
+    if (state.totalExchanges >= 15) {
         showStep('step-additional-info');
         displayAdditionalInfoWelcome();
     } else {
@@ -305,12 +333,11 @@ async function handleSkipQuestion() {
 
 // Additional Information
 function displayAdditionalInfoWelcome() {
+    // Keep it minimal - no verbose welcome message
     const messagesDiv = document.getElementById('additional-messages');
-    messagesDiv.innerHTML = `
-        <div class="message assistant">
-            <p class="message-content">Great! You've completed all the structured questions. Feel free to add any additional information or ask questions. When you're ready, click "Generate BRD" to create your Business Requirements Document.</p>
-        </div>
-    `;
+    if (messagesDiv) {
+        messagesDiv.innerHTML = '';
+    }
 }
 
 async function handleAddAdditionalInfo() {
@@ -341,7 +368,8 @@ async function handleAddAdditionalInfo() {
         
         if (data.success) {
             addAdditionalMessage('user', input);
-            if (data.ai_response) {
+            // Only show if it's a question, skip filler acknowledgments
+            if (data.ai_response && data.ai_response.trim() && data.ai_response.includes('?')) {
                 addAdditionalMessage('assistant', data.ai_response);
             }
             state.conversationHistory = data.conversation_history || state.conversationHistory;
@@ -366,6 +394,7 @@ async function handleGenerateBRD() {
             body: JSON.stringify({
                 conversation_history: state.conversationHistory,
                 project_context: state.projectContext,
+                customer_research: state.customerResearch,
                 client_name: state.clientName,
                 company_name: state.companyName
             })
@@ -572,8 +601,9 @@ function handleNewProject() {
         companyName: '',
         projectTopic: '',
         conversationHistory: [],
-        questionIndex: 0,
-        totalQuestions: 10,
+        conversationPhase: 'discovery',
+        totalExchanges: 0,
+        customerResearch: '',
         brdData: null
     };
     

@@ -14,6 +14,14 @@ from interactive_brd_generator import (
     extract_conversation_summary
 )
 
+# Import customer research and adaptive questioning
+from customer_research import (
+    research_customer,
+    generate_adaptive_question,
+    determine_conversation_phase,
+    should_continue_phase
+)
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -22,20 +30,6 @@ app.secret_key = os.urandom(24)
 # Groq models to try
 models_to_try = ["llama-3.1-70b-versatile", "llama-3.1-8b-instant", "mixtral-8x7b-32768", "gemma2-9b-it"]
 
-# Key questions for the conversation
-KEY_QUESTIONS = [
-    "What is the main problem or challenge that this AI automation solution aims to solve?",
-    "What are the current processes or systems that need to be automated?",
-    "Who are the primary users/stakeholders who will benefit from this solution?",
-    "What are the key business objectives and expected outcomes?",
-    "Are there any specific AI technologies or solutions you have in mind?",
-    "What are the critical success factors for this project?",
-    "Are there any compliance, security, or regulatory requirements?",
-    "What is the expected timeline for this project?",
-    "What are the main risks or concerns you foresee?",
-    "Are there any existing systems that need to integrate with the new solution?"
-]
-
 @app.route('/')
 def index():
     """Main page"""
@@ -43,60 +37,93 @@ def index():
 
 @app.route('/api/start-project', methods=['POST'])
 def start_project():
-    """Initialize a new project"""
+    """Initialize a new project and research customer"""
     data = request.json
     client_name = data.get('client_name', '').strip()
     company_name = data.get('company_name', '').strip()
     project_topic = data.get('project_topic', '').strip()
     
-    if not all([client_name, company_name, project_topic]):
-        return jsonify({'error': 'All fields are required'}), 400
+    if not client_name:
+        return jsonify({'error': 'Customer name is required'}), 400
+    
+    # Research customer
+    print(f"🔍 Researching customer: {client_name} ({company_name})")
+    customer_research, research_model = research_customer(client_name, company_name)
     
     project_context = f"""
 Client: {client_name}
-Company: {company_name}
-Project Topic: {project_topic}
+Company: {company_name if company_name else 'Not specified'}
+Project Topic: {project_topic if project_topic else 'To be discovered'}
 Date: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+Customer Research: {customer_research[:500] if customer_research else 'Research in progress...'}
 """
     
     return jsonify({
         'success': True,
         'project_context': project_context,
         'client_name': client_name,
-        'company_name': company_name,
-        'project_topic': project_topic,
-        'total_questions': len(KEY_QUESTIONS)
+        'company_name': company_name or 'Not specified',
+        'project_topic': project_topic or 'To be discovered',
+        'customer_research': customer_research,
+        'research_model': research_model,
+        'conversation_phase': 'discovery'
     })
 
 @app.route('/api/get-question', methods=['POST'])
 def get_question():
-    """Get the next question"""
+    """Generate adaptive question based on conversation phase and history"""
     data = request.json
-    question_index = data.get('question_index', 0)
+    conversation_history = data.get('conversation_history', [])
+    customer_research = data.get('customer_research', '')
+    conversation_phase = data.get('conversation_phase', 'discovery')
+    total_exchanges = len([msg for msg in conversation_history if msg.get('role') == 'user'])
     
-    if question_index >= len(KEY_QUESTIONS):
-        return jsonify({'error': 'No more questions'}), 400
+    # Determine phase if not provided
+    if not conversation_phase:
+        conversation_phase = determine_conversation_phase(conversation_history, total_exchanges)
+    
+    # Get project topic if available
+    project_topic = data.get('project_topic', '')
+    
+    # Generate adaptive question - pass full customer research and project topic
+    print(f"💭 Generating {conversation_phase} question (exchange #{total_exchanges + 1})")
+    print(f"📊 Using customer research: {len(customer_research) if customer_research else 0} characters")
+    print(f"🎯 Project topic: {project_topic[:100] if project_topic else 'Not provided'}")
+    question, model_used = generate_adaptive_question(
+        conversation_history, 
+        customer_research,  # Pass full research, not truncated
+        phase=conversation_phase,
+        project_topic=project_topic  # Pass project topic
+    )
+    
+    if not question:
+        return jsonify({'error': 'Failed to generate question'}), 500
     
     return jsonify({
-        'question': KEY_QUESTIONS[question_index],
-        'question_index': question_index,
-        'total_questions': len(KEY_QUESTIONS)
+        'question': question,
+        'conversation_phase': conversation_phase,
+        'total_exchanges': total_exchanges + 1,
+        'model_used': model_used
     })
 
 @app.route('/api/submit-answer', methods=['POST'])
 def submit_answer():
-    """Submit an answer and get AI response"""
+    """Submit an answer and get adaptive follow-up"""
     data = request.json
     question = data.get('question', '')
     answer = data.get('answer', '').strip()
     conversation_history = data.get('conversation_history', [])
-    question_index = data.get('question_index', 0)
+    customer_research = data.get('customer_research', '')
+    conversation_phase = data.get('conversation_phase', 'discovery')
     
     if not answer or answer.lower() in ['skip', 'done']:
+        # Move to next phase or continue
+        total_exchanges = len([msg for msg in conversation_history if msg.get('role') == 'user'])
+        new_phase = determine_conversation_phase(conversation_history, total_exchanges + 1)
         return jsonify({
             'success': True,
             'skipped': True,
-            'next_question_index': question_index + 1
+            'conversation_phase': new_phase
         })
     
     # Add to conversation history
@@ -109,18 +136,60 @@ def submit_answer():
         "content": answer
     })
     
-    # Get AI follow-up or acknowledgment
+    # Get consultative follow-up or probing question
     try:
-        follow_up_prompt = f"Based on the answer: '{answer}', provide a brief acknowledgment and ask a relevant follow-up question if needed, or say 'Thank you, let's move to the next question.'"
-        ai_response, _ = get_ai_response(follow_up_prompt, conversation_history)
+        total_exchanges = len([msg for msg in conversation_history if msg.get('role') == 'user'])
+        
+        # Determine if we should probe deeper or move on
+        should_probe = should_continue_phase(conversation_history, conversation_phase)
+        
+        if should_probe and total_exchanges < 12:  # Allow probing up to 12 exchanges
+            # Generate a probing follow-up question - MBB style, project-focused
+            customer_research_context = customer_research[:500] if customer_research else ""
+            follow_up_prompt = f"""
+You are a senior MBB consultant. Based on this answer about the PROJECT: "{answer}"
+
+Company Context (DO NOT ask about this - it's already known):
+{customer_research_context}
+
+Ask ONE strategic follow-up question about THIS PROJECT that:
+- Probes deeper into PROJECT-specific business impact or root causes
+- Uses consultative techniques (5 Whys, hypothesis testing)
+- Focuses on THIS PROJECT's value creation and success metrics
+- Is direct, professional, and project-focused
+- DO NOT ask about general company information
+
+Output ONLY the question. No acknowledgments or filler.
+"""
+            ai_response, _ = get_ai_response(follow_up_prompt, conversation_history)
+            # Clean up response - remove any filler
+            if ai_response:
+                ai_response = ai_response.strip()
+                # Remove common filler if present
+                if any(ai_response.lower().startswith(phrase) for phrase in ["thank you", "thanks", "got it", "i see", "that's helpful"]):
+                    # Extract just the question part
+                    lines = ai_response.split('\n')
+                    question_line = [l for l in lines if '?' in l]
+                    if question_line:
+                        ai_response = question_line[0].strip()
+        else:
+            # Move to next question silently
+            ai_response = None
     except Exception as e:
-        ai_response = f"Thank you for your answer. Let's continue with the next question."
+        print(f"Error generating follow-up: {e}")
+        ai_response = None  # Skip response on error
+    
+    # Determine next phase
+    total_exchanges = len([msg for msg in conversation_history if msg.get('role') == 'user'])
+    new_phase = determine_conversation_phase(conversation_history, total_exchanges)
     
     return jsonify({
         'success': True,
         'ai_response': ai_response,
         'conversation_history': conversation_history,
-        'next_question_index': question_index + 1
+        'conversation_phase': new_phase,
+        'total_exchanges': total_exchanges,
+        'should_continue': total_exchanges < 15  # Max 15 exchanges before BRD generation
     })
 
 @app.route('/api/add-additional-info', methods=['POST'])
@@ -140,20 +209,33 @@ def add_additional_info():
     
     try:
         ai_response, _ = get_ai_response(
-            "Provide a helpful response and ask a clarifying question if needed.",
+            "If clarification is needed, ask ONE direct question. Otherwise, respond with a brief one-sentence acknowledgment without filler words.",
             conversation_history
         )
+        # Clean up - only keep if it's a question or very brief
+        if ai_response:
+            if '?' not in ai_response and len(ai_response) > 40:
+                ai_response = None  # Skip verbose acknowledgments
     except Exception as e:
-        ai_response = "Thank you for the additional information."
+        ai_response = None  # Skip response on error
     
-    conversation_history.append({
-        "role": "assistant",
-        "content": ai_response
-    })
+    # Only add to history if meaningful
+    if ai_response and ai_response.strip():
+        conversation_history.append({
+            "role": "assistant",
+            "content": ai_response
+        })
+    
+    # Only add AI response if it exists and is meaningful
+    if ai_response:
+        conversation_history.append({
+            "role": "assistant",
+            "content": ai_response
+        })
     
     return jsonify({
         'success': True,
-        'ai_response': ai_response,
+        'ai_response': ai_response if ai_response else None,
         'conversation_history': conversation_history
     })
 
@@ -163,8 +245,13 @@ def generate_brd_endpoint():
     data = request.json
     conversation_history = data.get('conversation_history', [])
     project_context = data.get('project_context', '')
+    customer_research = data.get('customer_research', '')
     client_name = data.get('client_name', '')
     company_name = data.get('company_name', '')
+    
+    # Enhance project context with customer research
+    if customer_research:
+        project_context += f"\n\nCustomer Research Insights:\n{customer_research}"
     
     try:
         brd_content, model_used = generate_brd(conversation_history, project_context)

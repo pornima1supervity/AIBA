@@ -27,10 +27,10 @@ def get_ai_response(prompt, conversation_history=None, model=None):
     """Get response from Groq AI model"""
     messages = []
     
-    # Add system message
+    # Add system message - MBB consultant persona
     messages.append({
         "role": "system",
-        "content": "You are AIBA (AI Business Analyst), an expert business analyst helping to gather requirements and create Business Requirements Documents (BRD). You are professional, thorough, and ask insightful questions."
+        "content": "You are a senior consultant at a top-tier MBB firm (McKinsey, Bain, or BCG). You have an MBA from a top business school and specialize in strategic business analysis and AI/ML solutions. Your approach is:\n- Strategic and hypothesis-driven\n- Focused on business impact and value creation\n- Structured and methodical (MECE framework)\n- Data-driven and analytical\n- Professional and consultative\n\nYou help clients articulate their needs, understand business impact, and define requirements for AI solutions. Be concise, insightful, and direct."
     })
     
     # Add conversation history if provided
@@ -103,9 +103,9 @@ def generate_brd(conversation_history, project_context):
         elif "Date:" in line:
             project_date = line.split("Date:")[-1].strip()
     
-    # Create a comprehensive prompt for BRD generation
+    # Create a comprehensive prompt for BRD generation - MBB consulting style
     brd_prompt = f"""
-You are an expert Business Analyst creating a comprehensive, professional Business Requirements Document (BRD).
+You are a senior consultant at a top-tier MBB firm (McKinsey, Bain, or BCG) creating a comprehensive Business Requirements Document (BRD) for an AI/ML solution project. You have an MBA from a top business school and specialize in strategic consulting and AI/ML implementations.
 
 PROJECT INFORMATION:
 - Client: {client_name}
@@ -120,12 +120,14 @@ CONVERSATION DETAILS:
 {json.dumps(conversation_history, indent=2)}
 
 INSTRUCTIONS:
-Create a comprehensive, professional BRD document based on ALL the information provided above. The BRD must be:
-1. Detailed and specific - use actual information from the conversation
-2. Professional and well-structured
-3. Complete with all sections filled out based on available information
-4. Use proper markdown formatting with headers, subheaders, bullet points, and tables where appropriate
-5. If information is missing, make reasonable inferences or note "To be determined" where appropriate
+Create a comprehensive, professional BRD document following MBB consulting methodology:
+1. **Strategic Focus**: Emphasize business impact, value creation, and ROI
+2. **Structured Thinking**: Use MECE (Mutually Exclusive, Collectively Exhaustive) framework
+3. **Data-Driven**: Include measurable success criteria and KPIs
+4. **AI/ML Specific**: Include detailed technical requirements for AI/ML solutions (data infrastructure, model requirements, deployment, monitoring, etc.)
+5. **Professional**: Use proper markdown formatting with headers, subheaders, bullet points, and tables
+6. **Complete**: Fill all sections with actual information from the conversation; use "To be determined" only when necessary
+7. **Actionable**: Ensure requirements are specific, measurable, and implementable
 
 BRD STRUCTURE (create this exact structure):
 
@@ -256,7 +258,80 @@ BRD STRUCTURE (create this exact structure):
 
 ---
 
-## 7. SCOPE
+## 7. AI/ML TECHNICAL REQUIREMENTS
+
+### 7.1 Data Infrastructure
+[Specify data requirements for AI/ML solution]
+- **Data Sources**: [List all data sources: databases, APIs, files, streaming data]
+- **Data Volume**: [Expected data volume: records per day/month, storage requirements]
+- **Data Velocity**: [Real-time vs batch processing requirements]
+- **Data Quality**: [Data quality standards, validation requirements]
+- **Data Storage**: [Storage requirements: cloud, on-premise, hybrid]
+- **Data Pipelines**: [ETL/ELT pipeline requirements, data transformation needs]
+
+### 7.2 AI/ML Model Requirements
+[Specify AI/ML model requirements]
+- **Model Type**: [Supervised learning, unsupervised, reinforcement learning, NLP, computer vision, etc.]
+- **Accuracy Requirements**: [Target accuracy, precision, recall, F1-score]
+- **Model Explainability**: [Requirements for model interpretability and explainability]
+- **Fairness & Bias**: [Bias detection and mitigation requirements]
+- **Model Training**: [Training data requirements, retraining frequency]
+- **Model Versioning**: [Model versioning and management requirements]
+
+### 7.3 Deployment & Infrastructure
+[Specify deployment requirements]
+- **Deployment Environment**: [Cloud (AWS/Azure/GCP), on-premise, edge, hybrid]
+- **Edge Deployment**: [Edge computing requirements if applicable]
+- **Real-time vs Batch**: [Real-time inference vs batch processing requirements]
+- **Scalability**: [Expected load, auto-scaling requirements, peak capacity]
+- **Compute Resources**: [CPU, GPU, memory requirements]
+- **Containerization**: [Docker, Kubernetes requirements]
+
+### 7.4 Integration Requirements
+[Specify integration needs for AI/ML solution]
+- **API Integration**: [REST APIs, GraphQL, gRPC requirements]
+- **System Integration**: [Integration with existing systems, ERP, CRM, etc.]
+- **Data Format**: [JSON, XML, CSV, Parquet, etc.]
+- **Middleware**: [Message queues, event streaming (Kafka), service mesh]
+- **Legacy Systems**: [Integration with legacy systems if applicable]
+
+### 7.5 Performance & Monitoring
+[Specify performance and monitoring requirements]
+- **Latency Requirements**: [Response time requirements: p50, p95, p99]
+- **Throughput**: [Requests per second, transactions per second]
+- **Model Monitoring**: [Model performance monitoring, drift detection]
+- **Alerting**: [Alerting requirements for model degradation, system failures]
+- **Observability**: [Logging, metrics, tracing requirements]
+- **Dashboard**: [Monitoring dashboard requirements]
+
+### 7.6 Security & Compliance
+[Specify security and compliance requirements for AI/ML]
+- **Data Privacy**: [GDPR, CCPA, HIPAA compliance requirements]
+- **Model Security**: [Model protection, adversarial attack prevention]
+- **Access Control**: [Authentication, authorization, role-based access]
+- **Audit Trails**: [Audit logging requirements]
+- **Regulatory Compliance**: [Industry-specific regulations: finance, healthcare, etc.]
+- **Data Encryption**: [Encryption at rest and in transit]
+
+### 7.7 Model Operations (MLOps)
+[Specify MLOps requirements]
+- **CI/CD for ML**: [Continuous integration/deployment for ML models]
+- **Model Versioning**: [Model version control and management]
+- **A/B Testing**: [A/B testing framework requirements]
+- **Rollback Capabilities**: [Model rollback and recovery requirements]
+- **Model Governance**: [Model governance, approval workflows]
+- **Reproducibility**: [Reproducibility requirements for experiments and models]
+
+### 7.8 Resource & Cost Requirements
+[Specify resource and cost requirements]
+- **Compute Costs**: [Expected compute costs, budget constraints]
+- **Storage Costs**: [Data storage costs]
+- **Team Capabilities**: [Required team skills: data scientists, ML engineers, DevOps]
+- **Training Requirements**: [Training needs for client team]
+
+---
+
+## 8. SCOPE
 
 ### 7.1 In Scope
 [Clearly define what is included in the project scope]
@@ -292,7 +367,7 @@ BRD STRUCTURE (create this exact structure):
 
 ---
 
-## 9. RISKS & MITIGATION
+## 10. RISKS & MITIGATION
 
 ### 9.1 Identified Risks
 [Table of identified risks]
@@ -309,32 +384,32 @@ BRD STRUCTURE (create this exact structure):
 
 ---
 
-## 10. SUCCESS METRICS
+## 11. SUCCESS METRICS
 
-### 10.1 Key Performance Indicators (KPIs)
+### 11.1 Key Performance Indicators (KPIs)
 [Define KPIs to measure project success]
 
 | KPI | Description | Target | Measurement Method |
 |-----|-------------|--------|---------------------|
 | [KPI 1] | [Description] | [Target] | [Method] |
 
-### 10.2 Measurement Criteria
+### 11.2 Measurement Criteria
 [How success will be measured and evaluated]
 
-### 10.3 Acceptance Criteria
+### 11.3 Acceptance Criteria
 [Define acceptance criteria for project deliverables]
 
 ---
 
-## 11. APPENDICES
+## 12. APPENDICES
 
-### 11.1 Glossary
+### 12.1 Glossary
 [Define key terms and acronyms]
 
-### 11.2 References
+### 12.2 References
 [List relevant documents, standards, or references]
 
-### 11.3 Change Log
+### 12.3 Change Log
 [Track changes to this document]
 
 | Version | Date | Author | Changes |
